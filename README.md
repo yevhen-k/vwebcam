@@ -1,3 +1,13 @@
+# VWebCam
+
+VWebCam is the POC/draft project.
+
+The main idea of the project is the application of different kinds of filters (both OpenCV and Deep Learning) to alter your web cam stream and make it possible to use custom filters (masks and backgounds) in Zoom and Google Meet both static and animated.
+
+Example:
+
+![Trump Thug Life](https://media4.giphy.com/media/qUE3BDOjSt31viH1Pf/giphy.gif)
+
 ## Prerequesties
 1. Install linux kernel headers for your kernel, for example, `linux510-headers`
 2. Install `v4l2loopback-dkms`
@@ -18,17 +28,33 @@
    sudo modprobe --remove v4l2loopback
    ```
 
+## Quick start
+
+1. Clone the repo
+2. Make virtual environment and install requirements
+   ```bash
+   python3 -m venv venv
+   source ./venv/bin/activate
+   pip install -r requirements.txt
+   ```
+3. Make sure to follow [Prerequesties](##Prerequesties) paragraph
+4. Edit [config.py](config.py) to met your settings
+5. Start the app:
+   ```bash
+   python .
+   ```
+
 ## TODOs
-- [ ] massive refactoring
-- [ ] scale down input images to speed-up calculations (may make keypoint prediction more noisy)
 - [x] add margins to make better look and feel for thug mask
 - [x] add rotations to the thug mask
 - [x] add thug cigarette
+- [x] implement virtual camera support
+- [x] implemet gracefull quit
+- [x] massive refactoring
+- [ ] scale down input images to speed-up calculations (may make keypoint prediction more noisy)
 - [ ] ability to add new images via config / gui
 - [ ] hot reload: config update should automatically trigger update stream
-- [x] implement virtual camera support
-- [ ] use face [mash](https://google.github.io/mediapipe/solutions/face_mesh.html)
-- [x] implemet gracefull quit
+- [ ] use face [mesh](https://google.github.io/mediapipe/solutions/face_mesh.html)
 
 ## References
 1. PyImageSearch: https://pyimagesearch.com/2017/04/03/facial-landmarks-dlib-opencv-python/
