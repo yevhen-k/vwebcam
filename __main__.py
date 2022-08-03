@@ -12,7 +12,6 @@ from config import face_alignement_conf, vcamera_conf
 thug = ThugAsset("./assets/thug.png")
 ciga = CigaAsset("./assets/ciga.png")
 
-# Run the 3D face alignment on a test image, without CUDA.
 fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, device=face_alignement_conf['device'], flip_input=True,
                                   face_detector=face_alignement_conf['blazeface']['face_detector'],
                                   face_detector_kwargs=face_alignement_conf['blazeface']['face_detector_kwargs'])
@@ -25,7 +24,7 @@ stopper_event = Event()
 
 def stopper_fn():
     stopper_event.set()
-    # dirty crunch to make console output consistent
+    # dirty crutch to make console output consistent
     sleep(10)
     while True:
         q = input(">>> input `q` to quit: ")

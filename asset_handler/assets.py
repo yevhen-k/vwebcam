@@ -138,11 +138,11 @@ class CigaAsset(AssetHolder):
         super().__init__(asset_path)
 
     def apply_asset(self, frame: np.array, face: np.array) -> np.array:
-        mouse_width, lower_lip = self.__get_lig_position(face)
+        mouse_width, lower_lip = self.__get_lip_position(face)
         frame = self.__set_ciga(frame, mouse_width, lower_lip)
         return frame
 
-    def __get_lig_position(self, face: np.array) -> Tuple[int, np.array]:
+    def __get_lip_position(self, face: np.array) -> Tuple[int, np.array]:
 
         upper_lip_x, upper_lip_y, lower_lip_x, lower_lip_y = 0, 0, 0, 0
         left_lip_x, left_lip_y, right_lip_x, right_lip_y = 0, 0, 0, 0
