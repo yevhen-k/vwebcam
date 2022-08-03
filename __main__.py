@@ -1,3 +1,4 @@
+from time import sleep
 from asset import AssetHolder
 from conf import config
 import cv2
@@ -5,6 +6,7 @@ import face_alignment
 import torch
 import numpy as np
 import pyvirtualcam
+from threading import Event, Thread
 
 
 # Optionally set detector and some additional detector parameters
@@ -24,10 +26,26 @@ cam = cv2.VideoCapture(0)
 
 initial_log_flag = True
 
-def main():
+stopper_event = Event()
+
+
+def stopper_fn():
+    stopper_event.set()
+    # dirty crunch to make console output consistent
+    sleep(10)
+    while True:
+        q = input(">>> input `q` to quit: ")
+        print(q)
+        if q == 'q':
+            print(">>> exiting stopper...")
+            stopper_event.clear()
+            return
+
+
+def main_loop_fn():
     with pyvirtualcam.Camera(width=640, height=480, fps=20, backend="v4l2loopback", device="/dev/video2") as vcam:
         print(f'>>> Using virtual camera: {vcam.device}')
-        while True:
+        while stopper_event.is_set():
             ret, frame = cam.read()
 
             if ret:
@@ -58,6 +76,8 @@ def main():
             # cv2.imshow("frame", frame)
             # if cv2.waitKey(config["ms_per_frame"]) & 0xFF == ord("q"):
             #     break
+        
+        print(">>> exiting main loop...")
         
     cam.release()
     cv2.destroyAllWindows()
@@ -217,4 +237,7 @@ def set_ciga(frame, mouse_width, lower_lip, ciga_asset: AssetHolder):
 
 
 if __name__ == "__main__":
-    main()
+    stopper_thread = Thread(target=stopper_fn)
+    main_loop_thread = Thread(target=main_loop_fn)
+    stopper_thread.start()
+    main_loop_thread.start()
