@@ -28,7 +28,7 @@
 - [ ] hot reload: config update should automatically trigger update stream
 - [x] implement virtual camera support
 - [ ] use face [mash](https://google.github.io/mediapipe/solutions/face_mesh.html)
-- [ ] implemet gracefull quit
+- [x] implemet gracefull quit
 
 ## References
 1. PyImageSearch: https://pyimagesearch.com/2017/04/03/facial-landmarks-dlib-opencv-python/
