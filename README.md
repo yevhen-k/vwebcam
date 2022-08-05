@@ -51,9 +51,9 @@ Example:
 - [x] implement virtual camera support
 - [x] implemet gracefull quit
 - [x] massive refactoring
+- [x] hot reload: config update should automatically trigger update stream
 - [ ] scale down input images to speed-up calculations (may make keypoint prediction more noisy)
 - [ ] ability to add new images via config / gui
-- [ ] hot reload: config update should automatically trigger update stream
 - [ ] use face [mesh](https://google.github.io/mediapipe/solutions/face_mesh.html)
 
 ## References
