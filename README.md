@@ -16,14 +16,14 @@ Example:
    sudo modprobe v4l2loopback devices=1 card_label="My Fake Webcam" exclusive_caps=1
    ls -l /dev/video*
    ```
-4. In my case `/dev/video2` was initialized
-5. Star the app
-6. Check if it workd
+   In my case `/dev/video2` was initialized
+4. Start the app
+5. Check if it works
    ```bash
    ffplay /dev/video2
    ```
    Window with web stream should appear.
-7. After you're done:
+6. After you're done:
    ```bash  
    sudo modprobe --remove v4l2loopback
    ```
