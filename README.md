@@ -37,7 +37,7 @@ Example:
    source ./venv/bin/activate
    pip install -r requirements.txt
    ```
-3. Make sure to follow [Prerequesties](##Prerequesties) paragraph
+3. Make sure to follow [Prerequesties](#Prerequesties) paragraph
 4. Edit [config.py](config.py) to met your settings
 5. Start the app:
    ```bash
