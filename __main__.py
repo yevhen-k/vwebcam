@@ -1,4 +1,7 @@
+import os
 from time import sleep
+import json
+from typing import Dict
 from asset_handler import ThugAsset, CigaAsset
 import cv2
 import face_alignment
@@ -7,22 +10,14 @@ import numpy as np
 import pyvirtualcam
 from threading import Event, Thread
 from config import face_alignement_conf, vcamera_conf
+from utils import StateChecker
 
 # Read images to be placed on the output stram
 thug = ThugAsset("./assets/thug.png")
 ciga = CigaAsset("./assets/ciga.png")
 
-fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, device=face_alignement_conf['device'], flip_input=True,
-                                  face_detector=face_alignement_conf['blazeface']['face_detector'],
-                                  face_detector_kwargs=face_alignement_conf['blazeface']['face_detector_kwargs'])
-cam = cv2.VideoCapture(0)
 
-initial_log_flag = True
-
-stopper_event = Event()
-
-
-def stopper_fn():
+def stopper_fn(stopper_event: Event) -> None:
     stopper_event.set()
     # dirty crutch to make console output consistent
     sleep(10)
@@ -35,28 +30,41 @@ def stopper_fn():
             return
 
 
-def main_loop_fn():
+def main_loop_fn(camera: cv2.VideoCapture, model: face_alignment.FaceAlignment,
+                 stopper_event: Event,
+                 state_checker: StateChecker) -> None:
+    initial_log_flag = True
+    enabler = state_checker.content
     with pyvirtualcam.Camera(**vcamera_conf) as vcam:
         print(f'>>> Using virtual camera: {vcam.device}')
         while stopper_event.is_set():
-            ret, frame = cam.read()
 
-            if ret:
+            # get hot reload state
+            if state_checker.is_state_changed():
+                enabler = state_checker.get_actual_content()
+                print("\nconfig changed\n>>>")
+
+            success, frame = camera.read()
+
+            if success:
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame = frame.astype(float) / 255
             faces = None
-            try:
-                faces = fa.get_landmarks_from_image(torch.tensor(frame_rgb))
-            except Exception as e:
-                print(f">>> Failed to retrieve predictions: {e}")
+            if enabler["enable_dnn"]:
+                try:
+                    faces = fa.get_landmarks_from_image(
+                        torch.tensor(frame_rgb))
+                except Exception as e:
+                    print(f">>> Failed to retrieve predictions: {e}")
 
             if faces:
                 # draw assets
                 for face in faces:
-                    frame = thug.apply_asset(frame, face)
-                    frame = ciga.apply_asset(frame, face)
+                    if enabler["enable_thug"]:
+                        frame = thug.apply_asset(frame, face)
+                    if enabler["enable_ciga"]:
+                        frame = ciga.apply_asset(frame, face)
 
-            global initial_log_flag
             if initial_log_flag:
                 print(">>> Stream started...")
                 initial_log_flag = False
@@ -71,12 +79,26 @@ def main_loop_fn():
 
         print(">>> exiting main loop...")
 
-    cam.release()
+    camera.release()
     cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
-    stopper_thread = Thread(target=stopper_fn)
-    main_loop_thread = Thread(target=main_loop_fn)
+
+    fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, device=face_alignement_conf['device'], flip_input=True,
+                                      face_detector=face_alignement_conf['blazeface']['face_detector'],
+                                      face_detector_kwargs=face_alignement_conf['blazeface']['face_detector_kwargs'])
+    cam = cv2.VideoCapture(0)
+
+    stopper_event = Event()
+    stopper_event.set()
+
+    # Prepare dirty hot-reload config
+    enabler_path = "./enabler.json"
+    state_checker = StateChecker(enabler_path)
+
+    stopper_thread = Thread(target=stopper_fn, args=(stopper_event,))
+    main_loop_thread = Thread(
+        target=main_loop_fn, args=(cam, fa, stopper_event, state_checker))
     stopper_thread.start()
     main_loop_thread.start()

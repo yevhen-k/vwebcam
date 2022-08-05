@@ -1,8 +1,11 @@
 import collections
-from typing import Optional, Tuple
+import os
+from typing import Dict, Optional, Tuple
+import json
 
 __all__ = [
     'id2face_part',
+    'StateChecker',
 ]
 
 face_part = collections.namedtuple('parts', ['range', 'color'])
@@ -24,3 +27,25 @@ def id2face_part(idx: int) -> Tuple[Optional[Tuple[int, int, int]], Optional[str
         if idx in part.range:
             return part.color, face_part_desc
     return None, None
+
+
+class StateChecker:
+    def __init__(self, enabler_path: str) -> None:
+        self.enabler_path = enabler_path
+        self.state = self.get_state()
+        self.content = self.get_actual_content()
+
+    def is_state_changed(self) -> bool:
+        new_state = os.stat(self.enabler_path).st_mtime
+        if new_state > self.state:
+            return True
+        return False
+
+    def get_actual_content(self) -> Dict:
+        with open(self.enabler_path, "rt") as f:
+            content = json.load(fp=f)
+        self.state = os.stat(self.enabler_path).st_mtime
+        return content
+
+    def get_state(self) -> float:
+        return os.stat(self.enabler_path).st_mtime
