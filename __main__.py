@@ -8,7 +8,7 @@ import face_alignment
 import torch
 import numpy as np
 import pyvirtualcam
-from threading import Event, Thread
+from threading import Event, Lock, Thread
 from config import face_alignement_conf, vcamera_conf
 from utils import StateChecker
 
@@ -30,6 +30,14 @@ def stopper_fn(stopper_event: Event) -> None:
             return
 
 
+def state_checker_fn(state_checker: StateChecker, stopper_event: Event) -> None:
+    state_checker.disable_content_access()
+    while stopper_event.is_set():
+        sleep(state_checker.sleep_duration_sec)
+        if state_checker.is_state_changed():
+            state_checker.enable_content_access()
+
+
 def main_loop_fn(camera: cv2.VideoCapture, model: face_alignment.FaceAlignment,
                  stopper_event: Event,
                  state_checker: StateChecker) -> None:
@@ -40,8 +48,9 @@ def main_loop_fn(camera: cv2.VideoCapture, model: face_alignment.FaceAlignment,
         while stopper_event.is_set():
 
             # get hot reload state
-            if state_checker.is_state_changed():
+            if state_checker.is_content_available():
                 enabler = state_checker.get_actual_content()
+                state_checker.disable_content_access()
                 print("\nconfig changed\n>>>")
 
             success, frame = camera.read()
@@ -95,10 +104,16 @@ if __name__ == "__main__":
 
     # Prepare dirty hot-reload config
     enabler_path = "./enabler.json"
-    state_checker = StateChecker(enabler_path)
+    state_checker_event = Event()
+    state_checker_event_lock = Lock()
+    state_checker = StateChecker(
+        enabler_path, state_checker_event, state_checker_event_lock, sleep_duration_sec=1)
 
     stopper_thread = Thread(target=stopper_fn, args=(stopper_event,))
     main_loop_thread = Thread(
         target=main_loop_fn, args=(cam, fa, stopper_event, state_checker))
+    state_checker_thread = Thread(
+        target=state_checker_fn, args=(state_checker, stopper_event))
     stopper_thread.start()
     main_loop_thread.start()
+    state_checker_thread.start()

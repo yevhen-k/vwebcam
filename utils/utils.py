@@ -1,5 +1,6 @@
 import collections
 import os
+from threading import Event, Lock
 from typing import Dict, Optional, Tuple
 import json
 
@@ -30,8 +31,15 @@ def id2face_part(idx: int) -> Tuple[Optional[Tuple[int, int, int]], Optional[str
 
 
 class StateChecker:
-    def __init__(self, enabler_path: str) -> None:
+    def __init__(self, enabler_path: str, event: Event, lock: Lock, sleep_duration_sec: float) -> None:
+        self.sleep_duration_sec = sleep_duration_sec
         self.enabler_path = enabler_path
+        self.event = event
+        self.lock = lock
+
+        self.content_available = False
+        self.event.clear()
+
         self.state = self.get_state()
         self.content = self.get_actual_content()
 
@@ -42,10 +50,25 @@ class StateChecker:
         return False
 
     def get_actual_content(self) -> Dict:
-        with open(self.enabler_path, "rt") as f:
-            content = json.load(fp=f)
-        self.state = os.stat(self.enabler_path).st_mtime
-        return content
+        with self.lock:
+            with open(self.enabler_path, "rt") as f:
+                content = json.load(fp=f)
+            self.state = os.stat(self.enabler_path).st_mtime
+            return content
 
     def get_state(self) -> float:
         return os.stat(self.enabler_path).st_mtime
+
+    def enable_content_access(self) -> None:
+        with self.lock:
+            self.event.set()
+            self.content_available = True
+
+    def is_content_available(self) -> bool:
+        with self.lock:
+            return self.content_available
+
+    def disable_content_access(self) -> None:
+        with self.lock:
+            self.event.clear()
+            self.content_available = False
