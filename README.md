@@ -52,9 +52,10 @@ Example:
 - [x] implemet gracefull quit
 - [x] massive refactoring
 - [x] hot reload: config update should automatically trigger update stream
+- [ ] migrate to [pyee](https://pyee.readthedocs.io/en/latest/) event emitters
 - [ ] scale down input images to speed-up calculations (may make keypoint prediction more noisy)
 - [ ] ability to add new images via config / gui
-- [ ] use face [mesh](https://google.github.io/mediapipe/solutions/face_mesh.html)
+- [ ] migrate to face [mesh](https://google.github.io/mediapipe/solutions/face_mesh.html)
 
 ## References
 1. PyImageSearch: https://pyimagesearch.com/2017/04/03/facial-landmarks-dlib-opencv-python/
