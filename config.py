@@ -6,16 +6,9 @@ vcamera_conf = {
     'device': '/dev/video2',
 }
 
-face_alignement_conf = {
-    'blazeface': {
-        'face_detector': 'blazeface',
-        'face_detector_kwargs': {},
-    },
-    'sfd': {
-        'face_detector': 'sfd',
-        'face_detector_kwargs': {
-            'filter_threshold': 0.8,
-        },
-    },
-    'device': 'cuda',
+face_mesh_conf = {
+    "max_num_faces": 1,
+    "refine_landmarks": True,
+    "min_detection_confidence": 0.5,
+    "min_tracking_confidence": 0.5,
 }
