@@ -1,5 +1,5 @@
 {
     "enable_dnn": true,
-    "enable_thug": false,
+    "enable_thug": true,
     "enable_ciga": true
 }

@@ -52,10 +52,9 @@ Example:
 - [x] implemet gracefull quit
 - [x] massive refactoring
 - [x] hot reload: config update should automatically trigger update stream
+- [x] migrate to face [mesh](https://google.github.io/mediapipe/solutions/face_mesh.html)
 - [ ] migrate to [pyee](https://pyee.readthedocs.io/en/latest/) event emitters
-- [ ] scale down input images to speed-up calculations (may make keypoint prediction more noisy)
 - [ ] ability to add new images via config / gui
-- [ ] migrate to face [mesh](https://google.github.io/mediapipe/solutions/face_mesh.html)
 
 ## References
 1. PyImageSearch: https://pyimagesearch.com/2017/04/03/facial-landmarks-dlib-opencv-python/
@@ -68,3 +67,5 @@ Example:
 8. Create fake web cam stream on linux: https://www.linuxfordevices.com/tutorials/linux/fake-webcam-streams
 9. Installing linux headers for v4l2loopback-dkms: https://forum.manjaro.org/t/2021-11-19-stable-update-error-in-install-dkms-modules-step/91107
 10. Inter Thread communication in Python: https://dotnettutorials.net/lesson/inter-thread-communication-in-python/
+11. Face Mesh [Python API](https://google.github.io/mediapipe/solutions/face_mesh#python-solution-api)
+12. MediaPipe Face Mesh landmark indeces: [link](https://github.com/google/mediapipe/blob/a908d668c730da128dfa8d9f6bd25d519d006692/mediapipe/modules/face_geometry/data/canonical_face_model_uv_visualization.png)

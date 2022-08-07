@@ -1,7 +1,14 @@
-from typing import Tuple
+from typing import Optional, Tuple
 import cv2
 import numpy as np
 import abc
+from mediapipe.framework.formats import landmark_pb2
+import mediapipe as mp
+
+
+_VISIBILITY_THRESHOLD = mp.solutions.drawing_utils._VISIBILITY_THRESHOLD
+_PRESENCE_THRESHOLD = mp.solutions.drawing_utils._PRESENCE_THRESHOLD
+_normalized_to_pixel_coordinates = mp.solutions.drawing_utils._normalized_to_pixel_coordinates
 
 
 __all__ = [
@@ -29,8 +36,8 @@ class AssetHolder(abc.ABC):
 
 class ThugAsset(AssetHolder):
 
-    left_eye_kp_idx = 36
-    right_eye_kp_idx = 45
+    left_eye_kp_idx = 130
+    right_eye_kp_idx = 359
 
     margin_dy_scale = 0.60
     margin_dx_scale = 0.60
@@ -39,20 +46,38 @@ class ThugAsset(AssetHolder):
     def __init__(self, asset_path: str) -> None:
         super().__init__(asset_path)
 
-    def apply_asset(self, frame: np.array, face: np.array) -> np.array:
-        eye_bbox = self.__get_eye_bbox(face)
+    def apply_asset(self, frame: np.array, landmark_list: landmark_pb2.NormalizedLandmarkList) -> np.array:
+        #     landmark_list: A normalized landmark list proto message to be annotated on
+        #   the image.
+        # see: mediapipe/python/solutions/drawing_utils.py
+        eye_bbox = self.__get_eye_bbox(frame, landmark_list)
+        if eye_bbox is None:
+            return frame
         frame = self.__set_thug(frame, eye_bbox)
         return frame
 
-    def __get_eye_bbox(self, face: np.array) -> np.array:
+    def __get_eye_bbox(self, frame: np.array, landmark_list: landmark_pb2.NormalizedLandmarkList) -> Optional[np.array]:
         eye_left_x, eye_left_y, eye_right_x, eye_right_y = 0, 0, 0, 0
-        for idx, kp in enumerate(face):
+
+        image_rows, image_cols, _ = frame.shape
+        for idx, landmark in enumerate(landmark_list.landmark):
+            if ((landmark.HasField('visibility') and
+                landmark.visibility < _VISIBILITY_THRESHOLD) or
+                (landmark.HasField('presence') and
+                    landmark.presence < _PRESENCE_THRESHOLD)):
+                continue
+            landmark_px = _normalized_to_pixel_coordinates(landmark.x, landmark.y,
+                                                           image_cols, image_rows)
+            if landmark_px is None:  # landmarks are out of the image
+                return None
+
+            # get absolute positions of landmark of interest
             if idx == self.left_eye_kp_idx:
-                eye_left_x = kp[0]
-                eye_left_y = kp[1]
+                eye_left_x = landmark_px[0]
+                eye_left_y = landmark_px[1]
             if idx == self.right_eye_kp_idx:
-                eye_right_x = kp[0]
-                eye_right_y = kp[1]
+                eye_right_x = landmark_px[0]
+                eye_right_y = landmark_px[1]
         dx = eye_right_x - eye_left_x
         dy = eye_right_y - eye_left_y
         eye_width = np.sqrt(dx**2 + dy**2)
@@ -96,6 +121,7 @@ class ThugAsset(AssetHolder):
         return bbox
 
     def __set_thug(self, frame: np.array, eye_bbox: np.ndarray) -> np.array:
+        frame = frame.astype(float) / 255
         thug_h = self.image_rgb.shape[0]
         thug_w = self.image_rgb.shape[1]
 
@@ -114,7 +140,7 @@ class ThugAsset(AssetHolder):
             thug_rgb_f_warped = cv2.warpPerspective(
                 self.image_rgb_f, h, (frame_w, frame_h))
         except:
-            return frame
+            return (frame * 255).astype(np.uint8)
 
         # Multiply the foreground with the alpha matte
         foreground = cv2.multiply(alpha_channel_f_warped, thug_rgb_f_warped)
@@ -122,44 +148,59 @@ class ThugAsset(AssetHolder):
         background = cv2.multiply(1.0 - alpha_channel_f_warped, frame)
         # Add the masked foreground and background.
         frame = cv2.add(foreground, background)
-        return frame
+        return (frame * 255).astype(np.uint8)
 
 
 class CigaAsset(AssetHolder):
 
-    upper_lip_idx = 63
-    lower_lip_idx = 65
-    left_lip_idx = 54
-    right_lip_idx = 48
+    upper_lip_idx = 311
+    lower_lip_idx = 402
+    left_lip_idx = 61
+    right_lip_idx = 291
 
     scaler = 1.5
 
     def __init__(self, asset_path: str) -> None:
         super().__init__(asset_path)
 
-    def apply_asset(self, frame: np.array, face: np.array) -> np.array:
-        mouse_width, lower_lip = self.__get_lip_position(face)
-        frame = self.__set_ciga(frame, mouse_width, lower_lip)
+    def apply_asset(self, frame: np.array, landmark_list: landmark_pb2.NormalizedLandmarkList) -> np.array:
+        mouse_param = self.__get_lip_position(frame, landmark_list)
+        if mouse_param is None:
+            return frame
+        mouse_width, lower_lip_pos = mouse_param
+        frame = self.__set_ciga(frame, mouse_width, lower_lip_pos)
         return frame
 
-    def __get_lip_position(self, face: np.array) -> Tuple[int, np.array]:
+    def __get_lip_position(self, frame: np.array, landmark_list: landmark_pb2.NormalizedLandmarkList) -> Optional[Tuple[int, np.array]]:
 
         upper_lip_x, upper_lip_y, lower_lip_x, lower_lip_y = 0, 0, 0, 0
         left_lip_x, left_lip_y, right_lip_x, right_lip_y = 0, 0, 0, 0
 
-        for idx, kp in enumerate(face):
+        image_rows, image_cols, _ = frame.shape
+        for idx, landmark in enumerate(landmark_list.landmark):
+            if ((landmark.HasField('visibility') and
+                landmark.visibility < _VISIBILITY_THRESHOLD) or
+                (landmark.HasField('presence') and
+                    landmark.presence < _PRESENCE_THRESHOLD)):
+                continue
+            landmark_px = _normalized_to_pixel_coordinates(landmark.x, landmark.y,
+                                                           image_cols, image_rows)
+            if landmark_px is None:  # landmarks are out of the image
+                return None
+
+            # get absolute positions of landmark of interest
             if idx == self.upper_lip_idx:
-                upper_lip_x = kp[0]
-                upper_lip_y = kp[1]
+                upper_lip_x = landmark_px[0]
+                upper_lip_y = landmark_px[1]
             if idx == self.lower_lip_idx:
-                lower_lip_x = kp[0]
-                lower_lip_y = kp[1]
+                lower_lip_x = landmark_px[0]
+                lower_lip_y = landmark_px[1]
             if idx == self.left_lip_idx:
-                left_lip_x = kp[0]
-                left_lip_y = kp[1]
+                left_lip_x = landmark_px[0]
+                left_lip_y = landmark_px[1]
             if idx == self.right_lip_idx:
-                right_lip_x = kp[0]
-                right_lip_y = kp[1]
+                right_lip_x = landmark_px[0]
+                right_lip_y = landmark_px[1]
 
         mouse_dx = left_lip_x - right_lip_x
         mouse_dy = left_lip_y - right_lip_y
@@ -170,6 +211,7 @@ class CigaAsset(AssetHolder):
 
     def __set_ciga(self, frame: np.array, mouse_width: int, lower_lip: np.array) -> np.array:
 
+        frame = frame.astype(float) / 255
         alpha_channel = self.alpha_channel_f.copy()
         image_rgb_f = self.image_rgb_f.copy()
 
@@ -190,7 +232,7 @@ class CigaAsset(AssetHolder):
         foreground = cv2.multiply(alpha_channel, image_rgb_f)
         # Multiply the background with ( 1 - alpha )
         if alpha_channel.shape != roi.shape:
-            return frame
+            return (frame * 255).astype(np.uint8)
         background = cv2.multiply(1.0 - alpha_channel, roi)
 
         # Add the masked foreground and background.
@@ -202,4 +244,4 @@ class CigaAsset(AssetHolder):
             lower_lip[0]:(lower_lip[0]+alpha_channel.shape[1]),
             :] = blended
 
-        return frame
+        return (frame * 255).astype(np.uint8)
