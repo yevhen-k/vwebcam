@@ -164,11 +164,11 @@ class CigaAsset(AssetHolder):
         super().__init__(asset_path)
 
     def apply_asset(self, frame: np.array, landmark_list: landmark_pb2.NormalizedLandmarkList) -> np.array:
-        mouse_param = self.__get_lip_position(frame, landmark_list)
-        if mouse_param is None:
+        mouth_param = self.__get_lip_position(frame, landmark_list)
+        if mouth_param is None:
             return frame
-        mouse_width, lower_lip_pos = mouse_param
-        frame = self.__set_ciga(frame, mouse_width, lower_lip_pos)
+        mouth_width, lower_lip_pos = mouth_param
+        frame = self.__set_ciga(frame, mouth_width, lower_lip_pos)
         return frame
 
     def __get_lip_position(self, frame: np.array, landmark_list: landmark_pb2.NormalizedLandmarkList) -> Optional[Tuple[int, np.array]]:
@@ -202,20 +202,20 @@ class CigaAsset(AssetHolder):
                 right_lip_x = landmark_px[0]
                 right_lip_y = landmark_px[1]
 
-        mouse_dx = left_lip_x - right_lip_x
-        mouse_dy = left_lip_y - right_lip_y
-        mouse_width = np.sqrt(mouse_dx**2 + mouse_dy**2).astype(np.int32)
+        mouth_dx = left_lip_x - right_lip_x
+        mouth_dy = left_lip_y - right_lip_y
+        mouth_width = np.sqrt(mouth_dx**2 + mouth_dy**2).astype(np.int32)
         lower_lip = np.array([lower_lip_x, lower_lip_y], dtype=np.int32)
 
-        return mouse_width, lower_lip
+        return mouth_width, lower_lip
 
-    def __set_ciga(self, frame: np.array, mouse_width: int, lower_lip: np.array) -> np.array:
+    def __set_ciga(self, frame: np.array, mouth_width: int, lower_lip: np.array) -> np.array:
 
         frame = frame.astype(float) / 255
         alpha_channel = self.alpha_channel_f.copy()
         image_rgb_f = self.image_rgb_f.copy()
 
-        scale = mouse_width * self.scaler
+        scale = mouth_width * self.scaler
         height = scale
         width = image_rgb_f.shape[1] * scale / image_rgb_f.shape[0]
 
